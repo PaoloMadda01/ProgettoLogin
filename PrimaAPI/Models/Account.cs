@@ -24,8 +24,8 @@ public class Account
     //[NotMapped]         //La proprietà xmlFacialRecognition verrà ignorata da Entity Framework durante la creazione delle migrazioni 
     //[AllowNull]
     //public XmlDocument? xmlFacialRecognition { get; set; }
-    [NotMapped]         //La proprietà xmlFacialRecognition verrà ignorata da Entity Framework durante la creazione delle migrazioni 
-    [AllowNull]
+    //[NotMapped]         //La proprietà xmlFacialRecognition verrà ignorata da Entity Framework durante la creazione delle migrazioni 
+    //[AllowNull]
     public byte[]? modelFile { get; set; }
 
 }

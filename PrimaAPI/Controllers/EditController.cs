@@ -8,6 +8,7 @@ using Site = ProgettoLogin.Models.Site;
 using Newtonsoft.Json;
 using Octokit;
 using System.Security.Principal;
+using Account = ProgettoLogin.Models.Account;
 
 namespace ProgettoLogin.Controllers;
 public class EditController : Controller
@@ -390,7 +391,6 @@ public class EditController : Controller
 
 
 
-    //Invia il file pth del modello e la nuova foto per aggiornare il modello
     public async Task<byte[]> UpdateModelFile(byte[] modelFacialRecognition, byte[] photoNow)
     {
         var content = new MultipartFormDataContent();
@@ -402,9 +402,19 @@ public class EditController : Controller
 
         HttpResponseMessage response = await client.PostAsync("update_model/", content);
         response.EnsureSuccessStatusCode();
-        byte[] responseData = await response.Content.ReadAsByteArrayAsync();
+
+        byte[] responseData;
+        if (response.Content.Headers.ContentType.MediaType == "application/octet-stream")
+        {
+            responseData = await response.Content.ReadAsByteArrayAsync();
+        }
+        else
+        {
+            responseData = null;
+        }
 
         return responseData;
     }
+
 
 }

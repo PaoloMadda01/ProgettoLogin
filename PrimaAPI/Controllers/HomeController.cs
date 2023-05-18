@@ -4,9 +4,8 @@ using ProgettoLogin.Models;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
-using Octokit;
 using System.Globalization;
-using System.Xml;
+using Account = ProgettoLogin.Models.Account;
 
 namespace ProgettoLogin.Controllers;
 
@@ -88,43 +87,52 @@ public class HomeController : Controller
             return BadRequest("Errore con la foto");
         }
 
-        bool b_log = false;
         byte[] photoNow;
-        XmlDocument xmlFacialRecognition;
+        MainModel model = null;
 
-        // Verifica che il file sia un'immagine
-        if (photo.ContentType.StartsWith("image/"))
+        // Leggi il contenuto del file in un array di byte
+        using (var memoryStream = new MemoryStream())
         {
-            // Leggi il contenuto del file in un array di byte
-            using (var memoryStream = new MemoryStream())
-            {
-                photo.CopyTo(memoryStream);
-                photoNow = memoryStream.ToArray();
-            }
+            photo.CopyTo(memoryStream);
+            photoNow = memoryStream.ToArray();
+        }
 
-            foreach (var accountNow in _db.Accounts)
+        foreach (var accountNow in _db.Accounts)
+        {
+            if (accountNow.Email == email)
             {
-                if (accountNow.Email == email)
+                byte[] modelFacialRecognition = _db.Accounts.Single(c => c.id == accountNow.id).modelFile;
+                if (modelFacialRecognition == null)
                 {
-                    //xmlFacialRecognition = _db.Accounts.Single(c => c.id == accountNow.id).modelFile;
-                    xmlFacialRecognition = null;
-                    if (xmlFacialRecognition == null)
-                    {
-                        TempData["error"] = "You haven't a photo in database";
-                        break;
-                    }
+                    TempData["error"] = "You haven't a photo in database";
+                    break;
+                }
 
-                    bool b_Login = await ProcessImageApi(xmlFacialRecognition, photoNow);
-                    if (b_Login)
-                    {
-                        MainModel model = await CreateMainModelAsync(accountNow.id);
-                        return View("Main", model);
-                    }
+                bool b_Login = await ProcessImageApi(modelFacialRecognition, photoNow);
+                if (b_Login)
+                {
+                    model = await CreateMainModelAsync(accountNow.id);
+                    break;
+                }
+                else
+                {
+                    TempData["error"] = "Retry";
+                    break;
                 }
             }
         }
-        return View("Login");
+
+        if (model != null)
+        {
+            return View("Main", model);
+        }
+        else
+        {
+            return View("Login");
+        }
     }
+
+
 
 
 
@@ -307,14 +315,15 @@ public class HomeController : Controller
 
     
 
-    public async Task<bool> ProcessImageApi(XmlDocument xmlFacialRecognition, byte[] photoNow)
+    public async Task<bool> ProcessImageApi(byte[] modelFacialRecognition, byte[] photoNow)
     {
         var content = new MultipartFormDataContent();
-        content.Add(new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes(xmlFacialRecognition.OuterXml))), "xmlFacialRecognition");
+        content.Add(new ByteArrayContent(modelFacialRecognition), "model", "model.pth");
         content.Add(new ByteArrayContent(photoNow), "photoNow", "photoNow.jpg");
 
         HttpResponseMessage response = await client.PostAsync("process_image/", content);
         response.EnsureSuccessStatusCode();
+
         string responseBody = await response.Content.ReadAsStringAsync();
         double score = double.Parse(responseBody, CultureInfo.InvariantCulture);
         Console.WriteLine(score);
