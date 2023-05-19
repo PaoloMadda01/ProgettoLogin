@@ -6,8 +6,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Site = ProgettoLogin.Models.Site;
 using Newtonsoft.Json;
-using Octokit;
-using System.Security.Principal;
 using Account = ProgettoLogin.Models.Account;
 
 namespace ProgettoLogin.Controllers;
